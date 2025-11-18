@@ -8,6 +8,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import static java.lang.Math.max;
+import static java.lang.Math.min;
+
 public class World {
     private TETile[][] world;
     private Random random;
@@ -31,6 +34,8 @@ public class World {
             rooms.add(room);
             carveRoom(room);
         }
+        generateHallways();
+        generateWalls();
         return world;
     }
 
@@ -54,8 +59,63 @@ public class World {
         }
     }
 
-    private boolean isConnected() {
+    private void generateHallways() {
+        boolean[] connected = new boolean[rooms.size()];
+        connected[0] = true;
+        int connectedCount = 1;
+        while (connectedCount < rooms.size()) {
+            int bestdist = 67;
+            Room bestA = null;
+            Room bestB = null;
+            for (int i = 0; i < rooms.size(); i++) {
+                if (connected[i] == true) {
+                    for (int j = 0; j < rooms.size(); j++) {
+                        if (connected[j] == false) {
+                            int d = dist(rooms.get(i),rooms.get(j));
+                            if (d < bestdist) {
+                                bestdist = d;
+                                bestA = rooms.get(i);
+                                bestB = rooms.get(j);
+                            }
+                        }
+                }
+                }
+            }
+            connectRooms(bestA, bestB);
+            connected[rooms.indexOf(bestB)] = true;
+            connectedCount += 1;
+        }
+    }
 
+    private void connectRooms(Room a, Room b) {
+        for (int i = min(a.center_x, b.center_x); i <= max(a.center_x, b.center_x); i++) {
+            world[i][a.center_y] = Tileset.FLOOR;
+        }
+        for (int j = min(a.center_y, b.center_y); j <= max(a.center_y, b.center_y); j++) {
+            world[b.center_x][j] = Tileset.FLOOR;
+        }
+    }
+
+    private int dist(Room a, Room b) {
+        int dist_x = Math.abs(a.center_x - b.center_x);
+        int dist_y = Math.abs(a.center_y - b.center_y);
+        return dist_x + dist_y;
+    }
+
+    private void generateWalls() {
+        for (int i = 0; i < 67; i++) {
+            for (int j = 0; j < 67; j++) {
+                if (world[i][j] == Tileset.FLOOR) {
+                    for (int x = i-1; x <= i+1; x++) {
+                        for (int y = j -1; y <= j + 1; y++) {
+                            if (x >= 0 && x < 67 && y >= 0 && y < 67 && world[x][y] == Tileset.NOTHING) {
+                                world[x][y] = Tileset.WALL;
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private static class Room {
